@@ -18,7 +18,7 @@ else
 	exit 2
 fi
 
-cd ${filesdir} #Change directory to the one specified by user
+cd ${filesdir} #Change directory to the one specified by the user
 
 X=$(grep -r -l ${searchstr} * | wc -l) #Find the unique number of files
 Y=$(grep -r ${searchstr} * | wc -l) #Find the number of matching lines
