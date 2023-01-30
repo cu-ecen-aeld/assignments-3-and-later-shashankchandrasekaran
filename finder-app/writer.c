@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	syslog(LOG_DEBUG, "Writing %s to %s", filepath, filestr); //Log if file successfully created
+	syslog(LOG_DEBUG, "Writing %s to %s", filestr, filepath); //Log if file successfully created
 	
 	buffer_length = strlen(filestr); //Calculates the number of bytes to be input in the file
 	write_status= write(fd_status,filestr,buffer_length); //Writes to the file
