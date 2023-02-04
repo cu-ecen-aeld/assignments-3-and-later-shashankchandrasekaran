@@ -1,4 +1,13 @@
 #include "systemcalls.h"
+#include "stdlib.h" //Added by me
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 
 /**
  * @param cmd the command to execute with system()
@@ -8,8 +17,7 @@
  *   value was returned by the command issued in @param cmd.
 */
 bool do_system(const char *cmd)
-{
-
+{		
 /*
  * TODO  add your code here
  *  Call the system() function with the command set in the cmd
@@ -17,7 +25,11 @@ bool do_system(const char *cmd)
  *   or false() if it returned a failure
 */
 
-    return true;
+	int process_status=system(cmd);
+	if(process_status!=0 || cmd==NULL)
+		return false;
+	
+	return true;
 }
 
 /**
@@ -58,9 +70,36 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
-
+	int status, execv_status, wait_status;
+	pid_t pid;
+	pid = fork();
+	if(pid==-1)
+		return false;
+	if (pid==0) //Child process
+	{
+		execv_status=execv(command[0],command);
+		if(execv_status==-1)
+			exit (EXIT_FAILURE);
+	}
+	else //Parent process
+	{
+		if((wait_status=waitpid (pid, &status, 0)) == -1)
+			return false;
+		
+		if (wait_status != pid)
+			return false;
+			
+		if (WIFEXITED(status))
+		{
+                      if (status)
+                      		return false;
+                      else 
+                      		return true;
+               }
+	}
+	
     va_end(args);
-
+   
     return true;
 }
 
@@ -93,6 +132,40 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *
 */
 
+int fd, status, wait_status;
+pid_t pid;
+fd = open (outputfile, O_WRONLY|O_TRUNC|O_CREAT , 644);
+if (fd==-1)
+	return false; 
+	
+switch (pid = fork())
+{
+	case -1:
+		return false;
+	case 0: 
+		if (dup2(fd, 1) <0)
+			return false;
+		close (fd);
+		if (execv (command[0],command) == -1)
+			exit (EXIT_FAILURE);
+			
+	default:
+		close (fd);
+		if((wait_status=waitpid (pid, &status, 0)) == -1)
+			return false;
+		
+		if (wait_status != pid)
+			return false;
+			
+		if (WIFEXITED(status))
+		{
+                      if (status)
+                      		return false;
+                      else 
+                      		return true;
+               }
+}
+		
     va_end(args);
 
     return true;
