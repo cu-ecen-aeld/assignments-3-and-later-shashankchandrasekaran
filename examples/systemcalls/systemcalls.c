@@ -1,5 +1,5 @@
 #include "systemcalls.h"
-#include "stdlib.h" //Added by me
+#include "stdlib.h" 
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -70,7 +70,7 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
-	int status, execv_status, wait_status;
+	int status, execv_status;
 	pid_t pid;
 	pid = fork();
 	if(pid==-1)
@@ -83,11 +83,9 @@ bool do_exec(int count, ...)
 	}
 	else //Parent process
 	{
-		if((wait_status=waitpid (pid, &status, 0)) == -1)
+		if(waitpid (pid, &status, 0) == -1)
 			return false;
 		
-		if (wait_status != pid)
-			return false;
 			
 		if (WIFEXITED(status))
 		{
@@ -132,7 +130,7 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *
 */
 
-int fd, status, wait_status;
+int fd, status;
 pid_t pid;
 fd = open (outputfile, O_WRONLY|O_TRUNC|O_CREAT , 644);
 if (fd==-1)
@@ -142,20 +140,18 @@ switch (pid = fork())
 {
 	case -1:
 		return false;
-	case 0: 
+	case 0:  //Child process
 		if (dup2(fd, 1) <0)
 			return false;
 		close (fd);
 		if (execv (command[0],command) == -1)
 			exit (EXIT_FAILURE);
 			
-	default:
+	default: //Parent process
 		close (fd);
-		if((wait_status=waitpid (pid, &status, 0)) == -1)
+		if(waitpid (pid, &status, 0) == -1)
 			return false;
 		
-		if (wait_status != pid)
-			return false;
 			
 		if (WIFEXITED(status))
 		{
