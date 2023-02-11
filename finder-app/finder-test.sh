@@ -56,10 +56,10 @@ fi
 
 for i in $( seq 1 $NUMFILES)
 do
-	./writer "$WRITEDIR/${username}$i.txt" "$WRITESTR"  #Changed writer.sh to writer as part of assignment 2 testing
+	writer "$WRITEDIR/${username}$i.txt" "$WRITESTR"  #Changed writer.sh to writer as part of assignment 2 testing
 done
 
-OUTPUTSTRING=$(./finder.sh "$WRITEDIR" "$WRITESTR")
+OUTPUTSTRING=$(finder.sh "$WRITEDIR" "$WRITESTR")
 
 
 path = /tmp/assignment4-result.txt
