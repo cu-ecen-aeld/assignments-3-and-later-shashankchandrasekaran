@@ -62,7 +62,7 @@ done
 OUTPUTSTRING=$(finder.sh "$WRITEDIR" "$WRITESTR")
 
 
-path = /tmp/assignment4-result.txt
+path=/tmp/assignment4-result.txt
 echo "${OUTPUTSTRING}" > "${path}"
 
 # remove temporary directories
