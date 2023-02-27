@@ -28,6 +28,7 @@ struct addrinfo hints;
 struct addrinfo *servinfo;
 struct sockaddr_in client_addr;
 
+
 char *store_data=NULL; //To store data from receiver
 
 
