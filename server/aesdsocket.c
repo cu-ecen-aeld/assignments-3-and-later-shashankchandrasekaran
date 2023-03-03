@@ -22,12 +22,7 @@
 
 int socket_fd,accept_return; //Socket fd and client connection
 int status; //Daemon return status
-
-//Structure for bind and accept
-struct addrinfo hints;
-struct addrinfo *servinfo;
-struct sockaddr_in client_addr;
-
+bool handler_status=false;
 
 char *store_data=NULL; //To store data from receiver
 
@@ -44,13 +39,8 @@ void signal_handler(int sig)
 		syslog(LOG_INFO,"Caught SIGTERM, leaving");
 	}
 	
-	unlink("/var/tmp/aesdsocketdata.txt"); //Deletes a file
-	
-	//Close socket and client connection
-	close(socket_fd);
-	close(accept_return);
-	
-	exit(0); //Exit success 
+	handler_status=true;
+	close(socket_fd); //Close socket connection
 }
 
 
@@ -65,6 +55,10 @@ int main(int argc, char *argv[])
 	int send_status; //Return of send function
 	int i, total_bytes=0,packet_bytes_total=0; //Store total bytes received in a packet and total bytes received in a connection
 	bool write_flag=false; 
+	//Structure for bind and accept
+	struct sockaddr_in client_addr;
+	struct addrinfo *servinfo;
+	struct addrinfo hints;
 	
 	openlog(NULL,LOG_PID, LOG_USER); //To setup logging with LOG_USER
 	
@@ -100,7 +94,10 @@ int main(int argc, char *argv[])
 	}
 	
 	//Get server address
+	memset(&hints,0,sizeof(hints));
 	hints.ai_flags=AI_PASSIVE; //Set this flag before passing to function
+	hints.ai_family=AF_INET;
+	hints.ai_socktype=SOCK_STREAM;
 	getaddr=getaddrinfo(NULL,"9000",&hints,&servinfo);
 	if(getaddr !=0)
 	{
@@ -127,10 +124,6 @@ int main(int argc, char *argv[])
 	}
 	close(fd_status);
 	
-	//Infinite loop for server-client connections
-	while(1)
-	{
-	
 	//Listen
 	listen_status=listen(socket_fd,20); //Max queue of connections set to 20
 	if(listen_status==-1)
@@ -139,12 +132,15 @@ int main(int argc, char *argv[])
 		exit(8);
 	}
 	
+	//Loop for server-client connections
+	while(!handler_status)
+	{
 	//accept
 	accept_return=accept(socket_fd,(struct sockaddr *)&client_addr,&size);
 	if(accept_return==-1)
 	{
 		syslog(LOG_ERR, "Connection could not be accepted");
-		exit(9);
+		break;
 	}
 	else
 	{
@@ -167,7 +163,6 @@ int main(int argc, char *argv[])
 	//Loop to receive data packet
 	while(!write_flag)
 	{
-	
 	rec_status=recv(accept_return,buff,100,0); //Receive data packets from client
 	if(rec_status==-1)
 	{
@@ -243,14 +238,15 @@ int main(int argc, char *argv[])
 	{
 		syslog(LOG_ERR, "The data packets couldn't be send to the client");
 		exit(18);
-	}
-		
+	}		
 	close(op_fd); //Close file after reading
 	free(store_data); //Free the buffer
 	syslog(LOG_ERR,"Closed connection with %s\n",inet_ntoa(client_addr.sin_addr));
 	total_bytes =0; //Reset total bytes before sending new packet
 	}
 
+	unlink("/var/tmp/aesdsocketdata.txt"); //Deletes a file
+	close(accept_return); //Close connection
 	closelog(); //Close syslog
 	return 0;
 }

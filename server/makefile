@@ -2,7 +2,7 @@ CC = $(CROSS_COMPILE)gcc
 COMPFLAG = -Wall -Werror			
 .PHONY: all
 all: aesdsocket
-writer :
+aesdsocket :
 	$(CC) $(COMPFLAG) -c aesdsocket.c -o aesdsocket.o
 	$(CC) $(COMPFLAG) -o aesdsocket aesdsocket.o	
 	
