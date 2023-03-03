@@ -55,6 +55,7 @@ int main(int argc, char *argv[])
 	int send_status; //Return of send function
 	int i, total_bytes=0,packet_bytes_total=0; //Store total bytes received in a packet and total bytes received in a connection
 	bool write_flag=false; 
+	int file_delstatus, op_fd; //Added later
 	//Structure for bind and accept
 	struct sockaddr_in client_addr;
 	struct addrinfo *servinfo;
@@ -210,7 +211,7 @@ int main(int argc, char *argv[])
 	
 	packet_bytes_total += total_bytes; //Total bytes of a connection
 		
-	int op_fd=open("/var/tmp/aesdsocketdata.txt",O_RDONLY); //Open file to read only
+	op_fd=open("/var/tmp/aesdsocketdata.txt",O_RDONLY); //Open file to read only
 	if(op_fd==-1)
 	{
 		syslog(LOG_ERR, "Could not open the file to read");
@@ -245,8 +246,13 @@ int main(int argc, char *argv[])
 	total_bytes =0; //Reset total bytes before sending new packet
 	}
 
-	unlink("/var/tmp/aesdsocketdata.txt"); //Deletes a file
 	close(accept_return); //Close connection
+	file_delstatus=unlink("/var/tmp/aesdsocketdata.txt"); //Deletes a file
+	if(file_delstatus==-1)
+	{
+		syslog(LOG_ERR, "File could not be closed");
+		exit(19);
+	}
 	closelog(); //Close syslog
 	return 0;
 }
