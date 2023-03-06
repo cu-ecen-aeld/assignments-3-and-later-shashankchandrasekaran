@@ -4,7 +4,7 @@ COMPFLAG = -Wall -Werror
 all: aesdsocket
 aesdsocket :
 	$(CC) $(COMPFLAG) -c aesdsocket.c -o aesdsocket.o
-	$(CC) $(COMPFLAG) -o aesdsocket aesdsocket.o	
+	$(CC) $(COMPFLAG) -o aesdsocket aesdsocket.o -lpthread -lrt
 	
 .PHONY: clean
 clean:
