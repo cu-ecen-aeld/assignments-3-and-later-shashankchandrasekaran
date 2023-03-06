@@ -97,7 +97,7 @@ void socket_init(void)
 		exit(4);
 	}
 
-    socket_fd=socket(PF_INET, SOCK_STREAM, 0);
+    socket_fd=socket(AF_INET, SOCK_STREAM, 0);
 	if(socket_fd==-1) 
 	{
 		syslog(LOG_ERR, "Socket cannot be created\n");
