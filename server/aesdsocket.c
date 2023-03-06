@@ -229,7 +229,7 @@ void* thread_packet_data(void* thread_in_action)
 	close(t_node_params->accept_connection); 
 	t_node_params->thread_complete = true;  
 	free(temp_buff);   
-	pthread_exit(NULL);
+	return thread_in_action;
 }
 
 //Thread creation and cleanup tasks
