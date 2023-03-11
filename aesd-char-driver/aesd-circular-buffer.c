@@ -32,7 +32,30 @@ struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct
     /**
     * TODO: implement per description
     */
-    return NULL;
+
+   size_t upd_offset=char_offset+1;
+   int buff_length=AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+   uint8_t temp_store=buffer->out_offs;
+
+
+   while (buff_length!=0) //Check the entire buffer
+   {
+        if(buffer->entry[temp_store].size<upd_offset) //If the entry size is less than offset
+        {
+            upd_offset=upd_offset-buffer->entry[temp_store].size; //Update the offset 
+            if(temp_store==AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED-1) //Cycle back to start entry
+                temp_store=0;
+            else
+                temp_store++;
+        }
+        else
+        {
+            *entry_offset_byte_rtn = upd_offset-1; //return the offset in the entry
+            return &buffer->entry[temp_store]; //Return the entry
+        }
+        buff_length--;
+   }
+   return NULL;
 }
 
 /**
@@ -47,6 +70,35 @@ void aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const s
     /**
     * TODO: implement per description
     */
+
+   //Condition to check if the buffer is full
+   if((buffer->in_offs==buffer->out_offs)&&buffer->full)
+   {
+        if(buffer->out_offs==(AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED-1)) //If the enqueue is done on last element
+            buffer->out_offs=0; //Cycle back the read variable to zero
+        else
+            buffer->out_offs++; 
+    
+        buffer->entry[buffer->in_offs]=*add_entry; //replace existing data
+        buffer->in_offs=buffer->out_offs; //Update write variable
+   }
+   else //Operations when buffer isn't full
+   {
+        if (buffer->in_offs==(AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED-1)) //Cycling back
+        {
+             buffer->entry[buffer->in_offs]=*add_entry;
+             buffer->in_offs=0;
+        }
+        else 
+        {
+            buffer->entry[buffer->in_offs]=*add_entry;
+            buffer->in_offs++;
+        }
+
+        if(buffer->in_offs == buffer->out_offs) //Turn flag true if read and write point to same entry 
+            buffer->full=true;
+   }
+   
 }
 
 /**
