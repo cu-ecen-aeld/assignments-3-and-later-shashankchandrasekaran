@@ -1,10 +1,10 @@
-CCOMP = $(CROSS_COMPILE)gcc	
+CC = $(CROSS_COMPILE)gcc
 COMPFLAG = -Wall -Werror			
 .PHONY: all
 all: writer
 writer :
-	$(CCOMP) $(COMPFLAG) -c writer.c -o writer.o
-	$(CCOMP) $(COMPFLAG) -o writer writer.o	
+	$(CC) $(COMPFLAG) -c writer.c -o writer.o
+	$(CC) $(COMPFLAG) -o writer writer.o	
 	
 .PHONY: clean
 clean:

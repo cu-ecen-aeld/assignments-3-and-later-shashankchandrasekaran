@@ -5,10 +5,22 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 
 int main(int argc, char *argv[])
 {
+	/*int process_status;
+	process_status=system("echo what the fuck am i doing this assignment");
+	printf("\nProcess status is %d\n",process_status);
+	process_status=system("ls");
+	printf("\nProcess status is %d\n",process_status);
+	process_status=system("touch newfile.txt");
+	printf("\n %d\n",process_status);
+	process_status=system("Try karenge");
+	printf("\n %d\n",process_status); */
+	
+	
 	int fd_status;
 	ssize_t write_status;
 	ssize_t buffer_length;
