@@ -48,7 +48,7 @@ void timestamp_handler(int signo)
     if(time(&real_time) == -1)
 	{
         syslog(LOG_ERR,"Unable to get real time clock value");
-        exit (1);
+		return;
     }
 
     localtime_r(&real_time,&cur_time); //Converts to local time
@@ -57,7 +57,7 @@ void timestamp_handler(int signo)
     if (!time_length)
 	{
         syslog(LOG_ERR,"Unable to generate timestamp");
-        exit(2);
+		return;
     }
 
 	pthread_mutex_lock(&mutex);
@@ -67,7 +67,7 @@ void timestamp_handler(int signo)
 	if (bytes_written == -1)
 	{
 		syslog(LOG_ERR,"Couldn't write bytes to the file");
-		exit(3);
+		return;
 	}
 }
 
@@ -94,14 +94,14 @@ void socket_init(void)
 	if(getaddrinfo(NULL,"9000",&hints,&servinfo) !=0) 
 	{
 		syslog(LOG_ERR, "server address cannot be found");
-		exit(4);
+		exit(1);
 	}
 
     socket_fd=socket(AF_INET, SOCK_STREAM, 0);
 	if(socket_fd==-1) 
 	{
 		syslog(LOG_ERR, "Socket cannot be created\n");
-		exit(5);
+		exit(2);
 	}
 	
 	if(bind(socket_fd,servinfo->ai_addr,sizeof(struct sockaddr)) == -1)
@@ -109,7 +109,7 @@ void socket_init(void)
 		syslog(LOG_ERR, "Unable to bind");
 		freeaddrinfo(servinfo); 			
 		close(socket_fd);
-		exit(6);
+		exit(3);
 	}
 	freeaddrinfo(servinfo); 				
 }
@@ -145,7 +145,7 @@ void* thread_packet_data(void* thread_in_action)
 	int conn_close =0;
 
 	if(thread_in_action == NULL)
-  		exit(7);
+		return NULL;	
 
 	//logic to receive packets from client
 	thread_nodes_t *t_node_params= (thread_nodes_t *)thread_in_action;
@@ -155,7 +155,7 @@ void* thread_packet_data(void* thread_in_action)
 		syslog(LOG_ERR,"Couldn't allocate memory to store packets");
 		t_node_params->thread_complete = true;
 		close(t_node_params->accept_connection); 
-		exit(8);
+		return NULL;
 	}	
 	while (!conn_close && !handler_status)
 	{
@@ -168,7 +168,7 @@ void* thread_packet_data(void* thread_in_action)
 				syslog(LOG_ERR,"Cannot receive bytes");
 				t_node_params->thread_complete= true;
 				close(t_node_params->accept_connection); 
-				exit(9);
+				return NULL;
 			}
 			else if (recv_status == 0)
 			{	    
@@ -188,7 +188,7 @@ void* thread_packet_data(void* thread_in_action)
 						syslog(LOG_ERR,"Couldn't allocate more memory");
 						t_node_params->thread_complete= true;
 						close(t_node_params->accept_connection); 
-						exit(10);
+						return NULL;
 					}
 				}
 			}
@@ -203,7 +203,7 @@ void* thread_packet_data(void* thread_in_action)
 				syslog(LOG_ERR,"Cannot write bytes to the file");
 				t_node_params->thread_complete= true;
 				close(t_node_params->accept_connection); 
-				exit(11);
+				return NULL;
 			}
 			total_packet_bytes+=bytes_per_packet; //Accumulate total packet bytes received till now
 			pthread_mutex_unlock(&mutex); 
@@ -214,7 +214,7 @@ void* thread_packet_data(void* thread_in_action)
 				syslog(LOG_ERR,"Cannot reallocate memory");
 				t_node_params->thread_complete= true;
 				close(t_node_params->accept_connection); 
-				exit(12);
+				return NULL;
 			}
 
 			//Read bytes from file and send to socket
@@ -222,7 +222,7 @@ void* thread_packet_data(void* thread_in_action)
 			{
 				t_node_params->thread_complete= true;
 				close(t_node_params->accept_connection); 
-				exit(13);
+				return NULL;
 			}
 		}
 	}
@@ -298,7 +298,6 @@ void threads_tasks(int file_fd)
          total_connection--;
     }
 	close(file_fd);
-	close(accept_connection);
 }
 
 //Main subroutine
@@ -316,20 +315,20 @@ int main(int argc, char *argv[])
 	if(signal(SIGINT,signal_handler)==SIG_ERR)
 	{
 		syslog(LOG_ERR,"SIGINT failed");
-		exit(14); 
+		exit(4); 
 	}
 
 	if(signal(SIGTERM,signal_handler)==SIG_ERR)
 	{
 		syslog(LOG_ERR,"SIGTERM failed");
-		exit(15); 
+		exit(5); 
 	}
 
 	if(listen(socket_fd,20) == -1) 
 	{	
 		syslog(LOG_ERR, "Cannot listen to clients");
 		close(socket_fd);
-		exit(16); 
+		exit(6); 
 	}	
 
 	//To start a daemon process
@@ -338,7 +337,7 @@ int main(int argc, char *argv[])
 		if(daemon(0,0)==-1) 
 		{
 			syslog(LOG_ERR, "Couldn't enter daemon mode");
-			exit(17);
+			exit(7);
 		}
 	}
 
@@ -346,7 +345,7 @@ int main(int argc, char *argv[])
 	if(file_fd==-1)
 	{
 		syslog(LOG_ERR, "Cannot create file");
-		exit(18);
+		exit(8);
 	}
 	g_fd = file_fd; 
 
@@ -365,7 +364,7 @@ int main(int argc, char *argv[])
 	if (setitimer(ITIMER_REAL, &timer_count, NULL)==-1)
 	{
 		syslog(LOG_ERR,"The timer couldn't be set");
-		exit(19);
+		exit(9);
 	}
 
 	threads_tasks(file_fd);
