@@ -46,7 +46,7 @@ int aesd_release(struct inode *inode, struct file *filp)
     /**
      * TODO: handle release
      */
-   // filp->private_data = NULL;
+    filp->private_data = NULL;
     return 0;
 }
 
@@ -57,7 +57,7 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
     int tmp_buffer_count = 0;
     size_t offset_byte;
     struct aesd_buffer_entry *tmp_buffer;
-    struct aesd_dev *dev=NULL;
+    struct aesd_dev *dev;
 
     PDEBUG("read %zu bytes with offset %lld", count, *f_pos);
 
