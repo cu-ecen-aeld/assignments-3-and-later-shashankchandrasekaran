@@ -271,7 +271,7 @@ void aesd_cleanup_module(void)
         }
     }
 
-    if (&aesd_device.buffer_element != NULL)
+    if (aesd_device.buffer_element != NULL)
     {
         kfree(aesd_device.buffer_element);
     }
