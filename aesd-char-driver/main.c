@@ -117,7 +117,7 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
     /**
      * TODO: handle write
      */
-     if (mutex_lock_interruptible(&dev->lock)!=0)
+    if (mutex_lock_interruptible(&dev->lock)!=0)
 	{
 		PDEBUG(KERN_ERR "Couldn't acquire Mutex\n");
 		return -EFAULT;
@@ -136,7 +136,6 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
 		goto error_handler;
 	}
 
-
     for (i = 0; i < count; i++) 
     {
         if (tmp_buffer[i] == '\n') 
@@ -147,7 +146,6 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
         }
     }
 
-    
     if (dev->buffer_length == 0) 
     {
         dev->store_buffer = (char *)kmalloc(count, GFP_KERNEL);
@@ -161,7 +159,6 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
     } 
     else 
     {
-        
         if (packet_send)
             tmp_total_size = tmp_store;
         else
@@ -195,7 +192,7 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
     free_memory: 
             kfree(tmp_buffer);
     error_handler: 
-             mutex_unlock(&dev->lock);
+            mutex_unlock(&dev->lock);
   
     return retval;
 }
