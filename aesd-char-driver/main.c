@@ -30,11 +30,12 @@ struct aesd_dev aesd_device;
 
 int aesd_open(struct inode *inode, struct file *filp)
 {
+    struct aesd_dev *dev
     PDEBUG("open");
     /**
      * TODO: handle open
      */
-    struct aesd_dev* dev = container_of(inode->i_cdev, struct aesd_dev, cdev);
+    dev = container_of(inode->i_cdev, struct aesd_dev, cdev);
     filp->private_data = dev;
     return 0;
 }
@@ -74,7 +75,7 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
 
     tmp_buffer = aesd_circular_buffer_find_entry_offset_for_fpos(&dev->circular_buffer, *f_pos, &offset_byte);
 
-    if(tmp_buffer=NULL)
+    if(tmp_buffer==NULL)
         goto handle_error;
 
     if ((tmp_buffer->size - offset_byte) < count) 
@@ -185,7 +186,7 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
         if (replaced_buffer != NULL)
             kfree(replaced_buffer);
         
-        dev->buffer_size = 0;
+        dev->buffer_element.size = 0;
     } 
 
     retval = count;
@@ -270,9 +271,9 @@ void aesd_cleanup_module(void)
         }
     }
 
-    if (aesd_device.buffer_element != NULL)
+    if (&aesd_device.buffer_element != NULL)
     {
-        kfree(aesd_device.element);
+        kfree(aesd_device.buffer_element);
     }
 
     mutex_destroy(&aesd_device.lock);
