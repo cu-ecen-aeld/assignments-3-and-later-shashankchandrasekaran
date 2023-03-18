@@ -107,7 +107,8 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
                    loff_t *f_pos)
 {
     ssize_t retval = 0;
-    char *tmp_buffer, *replaced_buffer;
+    char *tmp_buffer;
+    const char *replaced_buffer;
     int i, packet_send = 0, tmp_store = 0, tmp_total_size = 0; 
     struct aesd_buffer_entry write_buffer;
     struct aesd_dev *dev = filp->private_data;
@@ -156,7 +157,7 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
             goto free_memory;
         }
         memcpy(dev->copy_buffer_ptr, tmp_buffer, count);
-        dev->buffer_element->size += count;
+        dev->buffer_size += count;
     } 
     else 
     {
