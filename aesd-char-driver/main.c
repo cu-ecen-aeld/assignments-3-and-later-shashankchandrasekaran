@@ -46,7 +46,7 @@ int aesd_release(struct inode *inode, struct file *filp)
     /**
      * TODO: handle release
      */
-    filp->private_data = NULL;
+   // filp->private_data = NULL;
     return 0;
 }
 
@@ -241,7 +241,6 @@ int aesd_init_module(void)
      * TODO: initialize the AESD specific portion of the device
      */
     mutex_init(&aesd_device.lock);
-    aesd_circular_buffer_init(&aesd_device.circular_buffer);
 
     result = aesd_setup_cdev(&aesd_device);
 
