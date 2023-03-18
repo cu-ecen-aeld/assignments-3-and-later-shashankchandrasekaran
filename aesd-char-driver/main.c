@@ -30,7 +30,7 @@ struct aesd_dev aesd_device;
 
 int aesd_open(struct inode *inode, struct file *filp)
 {
-    struct aesd_dev *dev
+    struct aesd_dev *dev;
     PDEBUG("open");
     /**
      * TODO: handle open
