@@ -107,8 +107,7 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
                    loff_t *f_pos)
 {
     ssize_t retval = 0;
-    char *tmp_buffer;
-    const char *replaced_buffer;
+    char *tmp_buffer, *replaced_buffer;
     int i, packet_send = 0, tmp_store = 0, tmp_total_size = 0; 
     struct aesd_buffer_entry write_buffer;
     struct aesd_dev *dev = filp->private_data;
@@ -148,15 +147,15 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
     }
 
     
-    if (dev->buffer_element->size == 0) 
+    if (dev->buffer_size == 0) 
     {
-        dev->buffer_element->buffptr = (char *)kmalloc(count, GFP_KERNEL);
-        if (dev->buffer_element->buffptr == NULL) 
+        dev->copy_buffer_ptr = (char *)kmalloc(count, GFP_KERNEL);
+        if (dev->copy_buffer_ptr == NULL) 
         {
             retval = -ENOMEM;
             goto free_memory;
         }
-        memcpy(dev->buffer_element->buffptr, tmp_buffer, count);
+        memcpy(dev->copy_buffer_ptr, tmp_buffer, count);
         dev->buffer_element->size += count;
     } 
     else 
@@ -167,27 +166,27 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
         else
             tmp_total_size = count;
 
-        dev->buffer_element->buffptr = (char *)krealloc(dev->buffer_element->buffptr, dev->buffer_element->size + tmp_total_size, GFP_KERNEL);
-        if (dev->buffer_element->buffptr == NULL) 
+        dev->copy_buffer_ptr = (char *)krealloc(dev->copy_buffer_ptr, dev->buffer_size + tmp_total_size, GFP_KERNEL);
+        if (dev->copy_buffer_ptr == NULL) 
         {
             retval = -ENOMEM;
             goto free_memory;
         }
       
-        memcpy(dev->buffer_element->buffptr + dev->buffer_element->size, tmp_buffer, tmp_total_size);
-        dev->buffer_element->size += tmp_total_size;        
+        memcpy(dev->copy_buffer_ptr + dev->buffer_size, tmp_buffer, tmp_total_size);
+        dev->buffer_size += tmp_total_size;        
     }
  
     if (packet_send) 
     {
-        write_buffer.buffptr = dev->buffer_element->buffptr;
-        write_buffer.size = dev->buffer_element->size;
+        write_buffer.buffptr = dev->copy_buffer_ptr;
+        write_buffer.size = dev->buffer_size;
         replaced_buffer = aesd_circular_buffer_add_entry(&dev->circular_buffer, &write_buffer);
     
         if (replaced_buffer != NULL)
             kfree(replaced_buffer);
         
-        dev->buffer_element->size = 0;
+        dev->buffer_size = 0;
     } 
 
     retval = count;
@@ -195,7 +194,7 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
     free_memory: 
             kfree(tmp_buffer);
     error_handler: 
-            mutex_unlock(&aesd_device.lock);
+             mutex_unlock(&dev->lock);
   
     return retval;
 }
@@ -270,11 +269,6 @@ void aesd_cleanup_module(void)
             kfree(buffer_element->buffptr);
             buffer_element->size = 0;
         }
-    }
-
-    if (aesd_device.buffer_element != NULL)
-    {
-        kfree(aesd_device.buffer_element);
     }
 
     mutex_destroy(&aesd_device.lock);
