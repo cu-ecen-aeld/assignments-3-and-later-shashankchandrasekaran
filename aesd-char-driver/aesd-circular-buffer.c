@@ -65,11 +65,13 @@ struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct
 * Any necessary locking must be handled by the caller
 * Any memory referenced in @param add_entry must be allocated by and/or must have a lifetime managed by the caller.
 */
-void aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const struct aesd_buffer_entry *add_entry)
+const char *aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const struct aesd_buffer_entry *add_entry)
 {
     /**
     * TODO: implement per description
     */
+
+    const char *freebuffer=NULL; //Pointer to return the replaced buffer entry to be freed by kernel driver
 
    //Condition to check if the buffer is full
    if((buffer->in_offs==buffer->out_offs)&&buffer->full)
@@ -78,7 +80,9 @@ void aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const s
             buffer->out_offs=0; //Cycle back the read variable to zero
         else
             buffer->out_offs++; 
-    
+
+        freebuffer = buffer->entry[buffer->in_offs].buffptr; //Store the address of the entry being replaced with a new entry
+
         buffer->entry[buffer->in_offs]=*add_entry; //replace existing data
         buffer->in_offs=buffer->out_offs; //Update write variable
    }
@@ -98,6 +102,7 @@ void aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const s
         if(buffer->in_offs == buffer->out_offs) //Turn flag true if read and write point to same entry 
             buffer->full=true;
    }
+   return freebuffer; //Return the pointer to the replaced entry
    
 }
 

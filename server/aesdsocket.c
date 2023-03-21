@@ -24,6 +24,14 @@
 
 #define TIMER_BUFF_SIZE 	100
 
+//Added as per assignment 8
+#define USE_AESD_CHAR_DEVICE	(1)
+#if (USE_AESD_CHAR_DEVICE == 1)
+	#define FILE_PATH	"/dev/aesdchar"
+#else
+    #define FILE_PATH	"/var/tmp/aesdsocketdata"
+#endif
+
 int socket_fd, total_packet_bytes =0, g_fd= 0;
 bool handler_status = false;
 pthread_mutex_t mutex; 
@@ -38,6 +46,7 @@ typedef struct thread_nodes{
 }thread_nodes_t; 
 
 
+#if (USE_AESD_CHAR_DEVICE==0)
 //Signal handler for sigalarm
 void timestamp_handler(int signo)
 {
@@ -70,6 +79,7 @@ void timestamp_handler(int signo)
 		return;
 	}
 }
+#endif
 
 //Signal Handler for sigint and sigalarm
 void signal_handler(int sig)
@@ -302,8 +312,7 @@ void threads_tasks(int file_fd)
 
 //Main subroutine
 int main(int argc, char *argv[])
-{ 	
-	struct itimerval timer_count;
+{
 	openlog(NULL,LOG_PID, LOG_USER); //To setup logging with LOG_USER
 
 	// Initialize mutex for threads and timestamp
@@ -341,7 +350,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	int file_fd = open("/var/tmp/aesdsocketdata.txt",O_RDWR|O_CREAT|O_APPEND, S_IRWXU|S_IRGRP|S_IROTH);
+	int file_fd = open(FILE_PATH,O_RDWR|O_CREAT|O_APPEND, S_IRWXU|S_IRGRP|S_IROTH);
 	if(file_fd==-1)
 	{
 		syslog(LOG_ERR, "Cannot create file");
@@ -349,6 +358,8 @@ int main(int argc, char *argv[])
 	}
 	g_fd = file_fd; 
 
+#if (USE_AESD_CHAR_DEVICE==0)
+	struct itimerval timer_count;
 	//Signal handler for sigalarm
 	signal(SIGALRM, timestamp_handler);
 
@@ -367,9 +378,11 @@ int main(int argc, char *argv[])
 		exit(9);
 	}
 
+#endif
+
 	threads_tasks(file_fd);
 
-	unlink("/var/tmp/aesdsocketdata.txt"); //Remove file descriptor
+	unlink(FILE_PATH); //Remove file descriptor
 	closelog(); //Close syslog
 	
 	return 0;
