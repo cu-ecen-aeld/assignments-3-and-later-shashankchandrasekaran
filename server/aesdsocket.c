@@ -21,6 +21,7 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include "queue.h"
+#include "aesd_ioctl.h"
 
 #define TIMER_BUFF_SIZE 	100
 
@@ -207,8 +208,16 @@ void* thread_packet_data(void* thread_in_action)
 		//Check for new line
 		if (new_line) 
 		{
+			const char *ioctl_string =  "AESDCHAR_IOCSEEKTO:";
 			pthread_mutex_lock(&mutex); 
-			if(write(t_node_params -> file_fd, temp_buff,bytes_per_packet) < bytes_per_packet) 
+			if (!strncmp(temp_buff,ioctl_string,strlen(ioctl_string)))
+			{
+				struct aesd_seekto seekto;
+				sscanf(temp_buff, "AESDCHAR_IOCSEEKTO:%d,%d", &seekto.write_cmd, &seekto.write_cmd_offset);
+				if(ioctl(t_node_params -> file_fd, AESDCHAR_IOCSEEKTO, &seekto))
+                	syslog(LOG_ERR, "IOCTL couldn't be executed");
+			}
+			else if(write(t_node_params -> file_fd, temp_buff,bytes_per_packet) < bytes_per_packet) 
 			{
 				syslog(LOG_ERR,"Cannot write bytes to the file");
 				t_node_params->thread_complete= true;
