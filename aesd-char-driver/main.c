@@ -220,6 +220,7 @@ static long aesd_adjust_file_offset(struct file *filp, unsigned int write_cmd, u
             fpos=fpos + dev->circular_buffer.entry[i].size;
         
         fpos=fpos+write_cmd_offset;
+        filp->f_pos=fpos;
     }
     mutex_unlock(&dev->lock);
     return return_val;
@@ -281,6 +282,8 @@ struct file_operations aesd_fops = {
     .write = aesd_write,
     .open = aesd_open,
     .release = aesd_release,
+    .llseek =   aesd_llseek,
+	.unlocked_ioctl = aesd_ioctl
 };
 
 static int aesd_setup_cdev(struct aesd_dev *dev)

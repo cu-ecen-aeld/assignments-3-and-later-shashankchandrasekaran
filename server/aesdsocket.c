@@ -33,10 +33,12 @@
     #define FILE_PATH	"/var/tmp/aesdsocketdata"
 #endif
 
-int socket_fd, total_packet_bytes =0, g_fd= 0;
+int socket_fd, g_fd= 0;
 bool handler_status = false;
-pthread_mutex_t mutex; 
 
+#if (USE_AESD_CHAR_DEVICE==0)
+pthread_mutex_t mutex; 
+#endif
 
 typedef struct thread_nodes{
 	pthread_t thread_id; 
@@ -128,23 +130,26 @@ void socket_init(void)
 //write data packet to file
 int write_pdata_file(int file_fd, int accept_connection)
 {
-	pthread_mutex_lock(&mutex);
-	lseek(file_fd, 0, SEEK_SET);
-	char send_buffer[total_packet_bytes]; 			 
-	if(read(file_fd,&send_buffer,total_packet_bytes)==-1) 
-	{  
-		syslog(LOG_ERR, "Cannot read the file");
-		return -1;
-	}	
-	pthread_mutex_unlock(&mutex); 
-	
-	//Send data packet to the client 
-	if(send(accept_connection,&send_buffer,total_packet_bytes,0)==-1) 
-	{
-		syslog(LOG_ERR, "Unable to send the bytes to the socket");
-		return -1;
-	} 
-	return 0;
+    char send_buffer[1]; 
+    ssize_t read_bytes,sent_bytes;
+    while((read_bytes = read(file_fd,send_buffer,1)) != 0)
+    {
+        if(read_bytes==-1)
+        {
+			syslog(LOG_ERR,"Couldn't read byte from file");
+			return -1;
+        }
+        else
+        {
+            sent_bytes = send(accept_connection,send_buffer,1,0);
+            if (sent_bytes != 1)
+            {
+				syslog(LOG_ERR,"Couldn't send byte to socket");
+				return -1;           
+            }
+        }
+    }
+    return 0; 
 }
 
 //Threads packet transfers
@@ -168,6 +173,7 @@ void* thread_packet_data(void* thread_in_action)
 		close(t_node_params->accept_connection); 
 		return NULL;
 	}	
+
 	while (!conn_close && !handler_status)
 	{
 		new_line = 0;
@@ -209,7 +215,11 @@ void* thread_packet_data(void* thread_in_action)
 		if (new_line) 
 		{
 			const char *ioctl_string =  "AESDCHAR_IOCSEEKTO:";
+			t_node_params->file_fd=open(FILE_PATH,(O_RDWR | O_APPEND));
+			#if (USE_AESD_CHAR_DEVICE==0)
 			pthread_mutex_lock(&mutex); 
+			#endif
+			//If condition for IOCTL logic
 			if (!strncmp(temp_buff,ioctl_string,strlen(ioctl_string)))
 			{
 				struct aesd_seekto seekto;
@@ -217,15 +227,20 @@ void* thread_packet_data(void* thread_in_action)
 				if(ioctl(t_node_params -> file_fd, AESDCHAR_IOCSEEKTO, &seekto))
                 	syslog(LOG_ERR, "IOCTL couldn't be executed");
 			}
-			else if(write(t_node_params -> file_fd, temp_buff,bytes_per_packet) < bytes_per_packet) 
+			else
 			{
-				syslog(LOG_ERR,"Cannot write bytes to the file");
-				t_node_params->thread_complete= true;
-				close(t_node_params->accept_connection); 
-				return NULL;
+				if(write(t_node_params -> file_fd, temp_buff,bytes_per_packet) < bytes_per_packet)
+				{
+					syslog(LOG_ERR,"Cannot write bytes to the file");
+					t_node_params->thread_complete= true;
+					close(t_node_params->accept_connection); 
+					return NULL;
+				}
 			}
-			total_packet_bytes+=bytes_per_packet; //Accumulate total packet bytes received till now
+			#if (USE_AESD_CHAR_DEVICE==0)
 			pthread_mutex_unlock(&mutex); 
+			#endif
+
 			bytes_per_packet = 1; 	   				
 			temp_buff = realloc(temp_buff, (bytes_per_packet)*sizeof(char)); 
 			if (temp_buff == NULL)
@@ -243,6 +258,7 @@ void* thread_packet_data(void* thread_in_action)
 				close(t_node_params->accept_connection); 
 				return NULL;
 			}
+            close (t_node_params->file_fd);
 		}
 	}
 	close(t_node_params->accept_connection); 
@@ -316,7 +332,6 @@ void threads_tasks(int file_fd)
          free(active_thread);
          total_connection--;
     }
-	close(file_fd);
 }
 
 //Main subroutine
@@ -324,8 +339,10 @@ int main(int argc, char *argv[])
 {
 	openlog(NULL,LOG_PID, LOG_USER); //To setup logging with LOG_USER
 
+	#if (USE_AESD_CHAR_DEVICE==0)
 	// Initialize mutex for threads and timestamp
-	pthread_mutex_init(&mutex, NULL);
+	pthread_mutex_init(&mutex, NULL); 
+	#endif
 
 	socket_init();
 
@@ -359,15 +376,17 @@ int main(int argc, char *argv[])
 		}
 	}
 
+    #if (USE_AESD_CHAR_DEVICE==0)
 	int file_fd = open(FILE_PATH,O_RDWR|O_CREAT|O_APPEND, S_IRWXU|S_IRGRP|S_IROTH);
 	if(file_fd==-1)
 	{
 		syslog(LOG_ERR, "Cannot create file");
 		exit(8);
 	}
-	g_fd = file_fd; 
+	g_fd = file_fd;
+	#endif
 
-#if (USE_AESD_CHAR_DEVICE==0)
+	#if (USE_AESD_CHAR_DEVICE==0)
 	struct itimerval timer_count;
 	//Signal handler for sigalarm
 	signal(SIGALRM, timestamp_handler);
@@ -386,12 +405,18 @@ int main(int argc, char *argv[])
 		syslog(LOG_ERR,"The timer couldn't be set");
 		exit(9);
 	}
+	#endif
 
-#endif
-
+	#if (USE_AESD_CHAR_DEVICE==0)
 	threads_tasks(file_fd);
+	#else
+	threads_tasks(-1); 
+	#endif
 
+	#if (USE_AESD_CHAR_DEVICE==0)
 	unlink(FILE_PATH); //Remove file descriptor
+	#endif
+
 	closelog(); //Close syslog
 	
 	return 0;
